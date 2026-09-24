@@ -146,23 +146,17 @@ button.cta:hover { background: var(--accent-hover); transform: translateY(-1px);
   .subheader { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
 
-/* Dashboard Grid */
-.dashboard-grid {
+/* Dashboard Charts Grid */
+.dashboard-charts {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
-.dashboard-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.dashboard-col-wide {
-  display: flex;
-  flex-direction: column;
+.chart-panel {
+  margin-bottom: 24px;
 }
 @media (max-width: 1024px) {
-  .dashboard-grid {
+  .dashboard-charts {
     grid-template-columns: 1fr;
   }
 }
