@@ -257,9 +257,9 @@ function App() {
           <div className="pagehead">
             <div><h2>Pharmacovigilance Module</h2><p>NPvCC — AE/SAE intake, Dual Coding, and Regulatory Clock Countdown</p></div>
           </div>
-          <div className="panel" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div className="panel">
             <h3>Report a new event (Dual-Coding Enabled)</h3>
-            <p style={{fontSize:'13px', color:'#475569', marginBottom:'16px'}}>
+            <p className="small" style={{marginBottom:'16px', opacity: 0.7}}>
               Supports standard regulatory reporting alongside traditional Ayurveda specific terminology.
             </p>
             {!perms.addAE ? (
@@ -273,8 +273,8 @@ function App() {
                   
                   <div><label>Severity</label><select name="severity"><option>AE</option><option value="SAE">SAE (Starts 24h Clock)</option></select></div>
                   
-                  <div style={{gridColumn: '1 / -1', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #cbd5e1'}}>
-                    <b style={{fontSize: '13px', color: '#334155'}}>Intervention & Event Coding</b>
+                  <div style={{gridColumn: '1 / -1', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.1)'}}>
+                    <b className="small">Intervention & Event Coding</b>
                   </div>
                   <div><label>NAMASTE Code (Ayush)</label><input name="namaste" placeholder="e.g. NM-501" /></div>
                   <div><label>WHO ICD-11 TM2 Code</label><input name="icd11tm2" placeholder="e.g. TM2-45A" /></div>
@@ -337,25 +337,19 @@ function App() {
         <section className={`section ${tab==='audit'?'active':''}`}>
           <div className="pagehead" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
             <div><h2>Audit Trail</h2><p>Immutable, time-stamped log — ALCOA+ aligned with SHA-256 Hash Chaining</p></div>
-            <button onClick={verifyAuditLog} className="cta" style={{background:'#0f172a'}}>Verify Integrity</button>
+            <button onClick={verifyAuditLog} className="cta">Verify Integrity</button>
           </div>
           
           {auditStatus && (
-            <div style={{
-              margin: '0 0 20px 0', padding: '16px', borderRadius: '8px',
-              background: auditStatus === 'valid' ? '#dcfce7' : auditStatus === 'invalid' ? '#fee2e2' : '#f1f5f9',
-              border: `1px solid ${auditStatus === 'valid' ? '#22c55e' : auditStatus === 'invalid' ? '#ef4444' : '#cbd5e1'}`,
-              color: auditStatus === 'valid' ? '#166534' : auditStatus === 'invalid' ? '#991b1b' : '#334155',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
+            <div className={`audit-status ${auditStatus}`}>
               <div>
                 <b>{auditStatus === 'valid' ? '✅ Blockchain Integrity Verified' : auditStatus === 'invalid' ? '❌ TAMPERING DETECTED' : '⏳ Checking Hashes...'}</b>
-                <p style={{margin: '4px 0 0', fontSize: '13px'}}>
+                <p className="small" style={{margin: '4px 0 0', opacity: 0.8}}>
                   {auditStatus === 'valid' ? 'All records are cryptographically secured and sequential.' : auditStatus === 'invalid' ? 'Hash chain broken! A record was modified after it was appended.' : 'Recalculating SHA-256 hashes...'}
                 </p>
               </div>
               {auditStatus === 'valid' && (
-                <button onClick={corruptAuditLog} style={{padding:'6px 12px', fontSize:'12px', border:'1px solid #991b1b', color:'#991b1b', background:'white', borderRadius:'4px', cursor:'pointer'}}>Simulate Tampering (Demo)</button>
+                <button onClick={corruptAuditLog} className="tamper-btn">Simulate Tampering (Demo)</button>
               )}
             </div>
           )}
@@ -365,10 +359,11 @@ function App() {
               {!auditLog.length ? (
                 <div className="locked">No actions recorded yet.</div>
               ) : (
-                <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
+                <div className="overflow-x">
+                <table>
                   <thead>
-                    <tr style={{textAlign: 'left', borderBottom: '1px solid #cbd5e1', color: '#64748b'}}>
-                      <th style={{padding: '8px 0'}}>Time</th>
+                    <tr>
+                      <th>Time</th>
                       <th>Role</th>
                       <th>Action</th>
                       <th>Hash</th>
@@ -376,17 +371,18 @@ function App() {
                   </thead>
                   <tbody>
                     {auditLog.map((a, i) => (
-                      <tr key={i} style={{borderBottom: '1px solid #e2e8f0'}}>
-                        <td style={{padding: '8px 0', color: '#64748b', whiteSpace: 'nowrap'}}>{a.t.replace('T', ' ').substring(0, 16)}</td>
+                      <tr key={i}>
+                        <td className="small" style={{whiteSpace: 'nowrap'}}>{a.t.replace('T', ' ').substring(0, 16)}</td>
                         <td><b>{a.role}</b></td>
                         <td>{a.action}</td>
-                        <td style={{fontFamily: 'monospace', fontSize: '11px', color: '#94a3b8', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis'}} title={a.currentHash}>
+                        <td style={{fontFamily: 'var(--font-mono)', fontSize: '11px', opacity: 0.5, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis'}} title={a.currentHash}>
                           {a.currentHash}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
           </div>

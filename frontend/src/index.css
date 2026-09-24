@@ -73,3 +73,11 @@ button.cta:disabled{opacity:.4;cursor:not-allowed;}
 .audit-item .t{font-family:var(--font-mono);color:var(--muted);flex:none;width:150px;}
 .small{font-size:11.5px;color:var(--muted);}
 .section{display:none;} .section.active{display:block;}
+
+/* Audit integrity status banners */
+.audit-status{margin:0 0 20px;padding:16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);background:var(--card);}
+.audit-status.valid{border-color:var(--sage);background:rgba(95,129,97,0.15);color:var(--sage);}
+.audit-status.invalid{border-color:var(--rust);background:rgba(181,80,60,0.15);color:var(--rust);}
+.audit-status.checking{border-color:var(--turmeric);background:rgba(201,138,44,0.1);color:var(--turmeric);}
+.tamper-btn{padding:6px 12px;font-size:12px;border:1px solid var(--rust);color:var(--rust);background:transparent;border-radius:4px;cursor:pointer;white-space:nowrap;}
+.tamper-btn:hover{background:var(--rust);color:#fff;}
