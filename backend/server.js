@@ -57,7 +57,7 @@ app.post('/api/audit', (req, res) => {
   });
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Backend server running on http://localhost:${PORT}`);
 });
