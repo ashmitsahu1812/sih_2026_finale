@@ -1,0 +1,10 @@
+# Backend
+backend/node_modules/
+backend/database.sqlite
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# OS
+.DS_Store

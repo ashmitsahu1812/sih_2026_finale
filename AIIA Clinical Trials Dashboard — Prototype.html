@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AIIA CTMS — Clinical Trials Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0E2A2C; --ink2:#123638; --paper:#F4F2EC; --paper2:#EAE6DA;
+  --turmeric:#C98A2C; --sage:#5F8161; --rust:#B5503C; --line:#D8D2C2;
+  --text:#16201F; --muted:#5A6360; --card:#FFFFFF;
+  --font-ui:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#EDEAE0; --paper:#0E1716; --paper2:#132120; --card:#16211F;
+    --text:#EDEAE0; --muted:#9CA8A3; --line:#25332F;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#EDEAE0; --paper:#0E1716; --paper2:#132120; --card:#16211F;
+  --text:#EDEAE0; --muted:#9CA8A3; --line:#25332F;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--text);font-family:var(--font-ui);height:100%;}
+html,body{height:100%;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:250px;flex:none;background:var(--ink2, var(--paper2));background:var(--paper2);border-right:1px solid var(--line);padding:20px 16px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.brand{display:flex;flex-direction:column;gap:2px;}
+.brand .mark{font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:var(--turmeric);}
+.brand h1{font-size:17px;margin:2px 0 0;font-weight:700;line-height:1.25;}
+.role-block label{display:block;font-size:11px;color:var(--muted);margin-bottom:6px;}
+select{width:100%;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-family:var(--font-ui);font-size:13.5px;}
+.nav{display:flex;flex-direction:column;gap:2px;margin-top:4px;}
+.nav button{all:unset;cursor:pointer;padding:10px 12px;border-radius:8px;font-size:13.5px;color:var(--text);display:flex;justify-content:space-between;align-items:center;}
+.nav button:hover{background:var(--card);}
+.nav button.active{background:var(--ink);color:var(--paper);font-weight:600;}
+.perm-note{margin-top:auto;font-size:11.5px;color:var(--muted);line-height:1.5;border-top:1px solid var(--line);padding-top:14px;}
+.perm-note b{color:var(--text);}
+main{flex:1;min-width:0;padding:28px 34px 60px;overflow-x:hidden;}
+.pagehead{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin-bottom:22px;}
+.pagehead h2{font-size:22px;margin:0;}
+.pagehead p{margin:2px 0 0;color:var(--muted);font-size:13.5px;}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:26px;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;}
+.kpi .num{font-family:var(--font-mono);font-size:26px;font-weight:600;}
+.kpi .lbl{font-size:12.5px;color:var(--muted);margin-top:4px;}
+.kpi.warn .num{color:var(--rust);}
+.kpi.ok .num{color:var(--sage);}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:22px;overflow:hidden;}
+.panel > h3{margin:0;padding:14px 18px;border-bottom:1px solid var(--line);font-size:14px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{color:var(--muted);font-weight:500;font-size:11.5px;}
+tr:last-child td{border-bottom:none;}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-family:var(--font-mono);}
+.tag.green{background:rgba(95,129,97,.16);color:var(--sage);}
+.tag.amber{background:rgba(201,138,44,.18);color:var(--turmeric);}
+.tag.red{background:rgba(181,80,60,.16);color:var(--rust);}
+.bar{height:7px;background:var(--paper2);border-radius:99px;overflow:hidden;width:100%;min-width:90px;}
+.bar > i{display:block;height:100%;background:var(--sage);}
+.alert-row{display:flex;gap:10px;padding:11px 18px;border-bottom:1px solid var(--line);font-size:13px;align-items:flex-start;}
+.alert-row:last-child{border-bottom:none;}
+.dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none;}
+.dot.red{background:var(--rust);} .dot.amber{background:var(--turmeric);}
+.overflow-x{overflow-x:auto;}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;padding:16px 18px;}
+.formgrid label{font-size:11.5px;color:var(--muted);display:block;margin-bottom:5px;}
+input,textarea{width:100%;background:var(--paper);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-family:var(--font-ui);font-size:13px;}
+button.cta{all:unset;cursor:pointer;background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:600;}
+button.cta:disabled{opacity:.4;cursor:not-allowed;}
+.locked{padding:14px 18px;color:var(--muted);font-size:13px;font-style:italic;}
+.deadline{font-family:var(--font-mono);font-weight:600;}
+.audit-item{padding:9px 18px;border-bottom:1px solid var(--line);font-size:12.5px;display:flex;gap:12px;}
+.audit-item:last-child{border-bottom:none;}
+.audit-item .t{font-family:var(--font-mono);color:var(--muted);flex:none;width:150px;}
+.small{font-size:11.5px;color:var(--muted);}
+.section{display:none;} .section.active{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="mark">MINISTRY OF AYUSH · AIIA</span>
+      <h1>Clinical Trials Dashboard</h1>
+    </div>
+    <div class="role-block">
+      <label for="roleSel">Viewing as</label>
+      <select id="roleSel">
+        <option>Principal Investigator</option>
+        <option>Study Coordinator</option>
+        <option>Monitor</option>
+        <option>Ethics Committee</option>
+        <option>Pharmacovigilance Staff</option>
+        <option>Admin</option>
+        <option>Regulator (read-only)</option>
+      </select>
+    </div>
+    <nav class="nav" id="navBtns">
+      <button data-tab="portfolio" class="active">Portfolio &amp; KPIs</button>
+      <button data-tab="regulatory">Regulatory &amp; Ethics</button>
+      <button data-tab="pv">Pharmacovigilance</button>
+      <button data-tab="audit">Audit Trail</button>
+    </nav>
+    <div class="perm-note" id="permNote"></div>
+  </aside>
+
+  <main>
+    <!-- PORTFOLIO -->
+    <section class="section active" id="tab-portfolio">
+      <div class="pagehead">
+        <div><h2>Portfolio &amp; KPI Layer</h2><p>Stage 1 MVP — real-time view replacing spreadsheet tracking</p></div>
+      </div>
+      <div class="kpis" id="kpiRow"></div>
+      <div class="panel">
+        <h3>Alerts</h3>
+        <div id="alertList"></div>
+      </div>
+      <div class="panel">
+        <h3>Study Portfolio</h3>
+        <div class="overflow-x">
+          <table id="studyTable">
+            <thead><tr><th>Study</th><th>CTRI</th><th>Ethics</th><th>Enrolment</th><th>Deviations</th><th>Monitoring</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGULATORY -->
+    <section class="section" id="tab-regulatory">
+      <div class="pagehead">
+        <div><h2>Regulatory &amp; Ethics Tracker</h2><p>CTRI registration and IEC approval milestones — NDCT Rules 2019</p></div>
+      </div>
+      <div class="panel">
+        <h3>Milestones</h3>
+        <div class="overflow-x">
+          <table id="regTable">
+            <thead><tr><th>Study</th><th>CTRI status</th><th>Ethics status</th><th>Ethics renewal</th><th>Update</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PV -->
+    <section class="section" id="tab-pv">
+      <div class="pagehead">
+        <div><h2>Pharmacovigilance Module</h2><p>NPvCC — AE/SAE intake, MedDRA coding, regulatory-clock countdown</p></div>
+      </div>
+      <div class="panel">
+        <h3>Report a new event</h3>
+        <div id="aeFormWrap"></div>
+      </div>
+      <div class="panel">
+        <h3>AE / SAE register</h3>
+        <div class="overflow-x">
+          <table id="aeTable">
+            <thead><tr><th>Study</th><th>Event</th><th>Severity</th><th>MedDRA</th><th>Reported</th><th>Deadline</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUDIT -->
+    <section class="section" id="tab-audit">
+      <div class="pagehead">
+        <div><h2>Audit Trail</h2><p>Immutable, time-stamped log — ALCOA+ aligned</p></div>
+      </div>
+      <div class="panel"><div id="auditList"></div></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const ROLE_PERMS = {
+  "Principal Investigator": {edit:false, addAE:false, note:"Read/drill-down access to own studies. Cannot alter regulatory status or file AE reports directly."},
+  "Study Coordinator": {edit:false, addAE:false, note:"Enrolment and deviation data entry (view-only in this prototype)."},
+  "Monitor": {edit:false, addAE:false, note:"Monitoring-visit tracking access. Read-only on regulatory status."},
+  "Ethics Committee": {edit:true, addAE:false, note:"Can update CTRI / ethics milestone status."},
+  "Pharmacovigilance Staff": {edit:false, addAE:true, note:"Can log new AE/SAE events into the NPvCC register."},
+  "Admin": {edit:true, addAE:true, note:"Full access — regulatory updates, AE intake, audit trail."},
+  "Regulator (read-only)": {edit:false, addAE:false, note:"Full visibility, no write access — per RBAC design."}
+};
+
+let studies = [
+  {id:"AIIA-CT-01", title:"Ashwagandha extract in generalized anxiety", site:"AIIA, New Delhi", ctri:"CTRI/2025/03/061234", ctriStatus:"Registered", ethicsStatus:"Approved", ethicsRenewal:"2026-10-14", target:180, enrolled:132, deviations:2, lastVisit:"2026-08-20", nextVisit:"2026-09-27"},
+  {id:"AIIA-CT-02", title:"Guggulu formulation in dyslipidaemia (multi-centre)", site:"AIIA + 3 sites", ctri:"CTRI/2024/11/059870", ctriStatus:"Amendment pending", ethicsStatus:"Approved", ethicsRenewal:"2026-09-30", target:300, enrolled:171, deviations:5, lastVisit:"2026-07-30", nextVisit:"2026-09-24"},
+  {id:"AIIA-CT-03", title:"Panchakarma protocol in chronic low back pain", site:"AIIA, New Delhi", ctri:"CTRI/2026/01/062210", ctriStatus:"Registered", ethicsStatus:"Renewal due", ethicsRenewal:"2026-10-05", target:120, enrolled:44, deviations:1, lastVisit:"2026-09-01", nextVisit:"2026-10-15"},
+  {id:"AIIA-CT-04", title:"Observational study — Rasayana in post-COVID fatigue", site:"AIIA, New Delhi", ctri:"Not yet submitted", ctriStatus:"Pre-registration", ethicsStatus:"Under review", ethicsRenewal:"—", target:250, enrolled:0, deviations:0, lastVisit:"—", nextVisit:"—"},
+  {id:"AIIA-CT-05", title:"Triphala in metabolic syndrome (pilot)", site:"AIIA, New Delhi", ctri:"CTRI/2025/06/063441", ctriStatus:"Registered", ethicsStatus:"Approved", ethicsRenewal:"2027-02-11", target:60, enrolled:58, deviations:0, lastVisit:"2026-09-10", nextVisit:"2026-10-10"}
+];
+
+let aeRecords = [
+  {study:"AIIA-CT-02", subject:"S-0142", event:"Elevated liver enzymes", severity:"SAE", meddra:"10024690", reported:"2026-09-20T09:10", hours:24, status:"Open"},
+  {study:"AIIA-CT-01", subject:"S-0033", event:"Mild headache", severity:"AE", meddra:"10019211", reported:"2026-09-18T14:00", hours:168, status:"Closed"}
+];
+
+let auditLog = [];
+function nowStr(){ const d=new Date(); return d.toISOString().slice(0,16).replace('T',' '); }
+function logAudit(action){
+  auditLog.unshift({t:nowStr(), role:currentRole(), action});
+  renderAudit();
+}
+function currentRole(){ return document.getElementById('roleSel').value; }
+function daysUntil(dateStr){
+  if(dateStr==="—") return null;
+  const diff = (new Date(dateStr) - new Date("2026-09-23")) / 86400000;
+  return Math.round(diff);
+}
+
+function renderKPIs(){
+  const active = studies.filter(s=>s.ctriStatus!=="Pre-registration").length;
+  const totalTarget = studies.reduce((a,s)=>a+s.target,0);
+  const totalEnrolled = studies.reduce((a,s)=>a+s.enrolled,0);
+  const renewalsDue = studies.filter(s=>{const d=daysUntil(s.ethicsRenewal); return d!==null && d<=30;}).length;
+  const overdueVisits = studies.filter(s=>{const d=daysUntil(s.nextVisit); return d!==null && d<0;}).length;
+  const openAE = aeRecords.filter(r=>r.status==="Open").length;
+  const cards = [
+    {num:active, lbl:"Active studies", cls:""},
+    {num:`${totalEnrolled}/${totalTarget}`, lbl:"Enrolment vs. target", cls:""},
+    {num:renewalsDue, lbl:"CTRI/ethics renewals due ≤30d", cls: renewalsDue? "warn":"ok"},
+    {num:overdueVisits, lbl:"Overdue monitoring visits", cls: overdueVisits? "warn":"ok"},
+    {num:openAE, lbl:"Open AE/SAE cases", cls: openAE? "warn":"ok"}
+  ];
+  document.getElementById('kpiRow').innerHTML = cards.map(c=>`<div class="kpi ${c.cls}"><div class="num">${c.num}</div><div class="lbl">${c.lbl}</div></div>`).join('');
+}
+
+function renderAlerts(){
+  let rows = [];
+  studies.forEach(s=>{
+    const dRen = daysUntil(s.ethicsRenewal);
+    if(dRen!==null && dRen<=30) rows.push({sev:dRen<0?"red":"amber", text:`${s.id} — ethics renewal ${dRen<0?`overdue by ${-dRen}d`:`due in ${dRen}d`} (${s.ethicsRenewal})`});
+    const dVis = daysUntil(s.nextVisit);
+    if(dVis!==null && dVis<0) rows.push({sev:"red", text:`${s.id} — monitoring visit overdue by ${-dVis} day(s)`});
+    if(s.target>0 && s.enrolled/s.target < 0.4 && s.ctriStatus==="Registered") rows.push({sev:"amber", text:`${s.id} — enrolment lag: ${s.enrolled}/${s.target} (${Math.round(100*s.enrolled/s.target)}%)`});
+  });
+  aeRecords.forEach(r=>{
+    if(r.status==="Open"){
+      const dl = new Date(r.reported); dl.setHours(dl.getHours()+r.hours);
+      const hoursLeft = (dl - new Date("2026-09-23T12:00")) / 3600000;
+      if(hoursLeft<0) rows.push({sev:"red", text:`${r.study} — ${r.severity} "${r.event}" past reporting deadline`});
+      else if(hoursLeft<24) rows.push({sev:"amber", text:`${r.study} — ${r.severity} "${r.event}" reporting due in ${Math.round(hoursLeft)}h`});
+    }
+  });
+  if(!rows.length) rows.push({sev:"amber", text:"No active alerts."});
+  document.getElementById('alertList').innerHTML = rows.map(r=>`<div class="alert-row"><span class="dot ${r.sev}"></span><span>${r.text}</span></div>`).join('');
+}
+
+function tagFor(status){
+  const okWords=["Registered","Approved","Closed"], warnWords=["Amendment pending","Renewal due","Under review","Pre-registration"];
+  if(okWords.includes(status)) return `<span class="tag green">${status}</span>`;
+  if(warnWords.includes(status)) return `<span class="tag amber">${status}</span>`;
+  return `<span class="tag red">${status}</span>`;
+}
+
+function renderStudyTable(){
+  const tb = document.querySelector('#studyTable tbody');
+  tb.innerHTML = studies.map(s=>{
+    const pct = Math.min(100, Math.round(100*s.enrolled/s.target));
+    return `<tr>
+      <td><b>${s.id}</b><br><span class="small">${s.title}</span></td>
+      <td><span class="small" style="font-family:var(--font-mono)">${s.ctri}</span></td>
+      <td>${tagFor(s.ethicsStatus)}</td>
+      <td>${s.enrolled}/${s.target}<div class="bar"><i style="width:${pct}%"></i></div></td>
+      <td>${s.deviations}</td>
+      <td class="small">Next: ${s.nextVisit}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderRegTable(){
+  const perms = ROLE_PERMS[currentRole()];
+  const tb = document.querySelector('#regTable tbody');
+  tb.innerHTML = studies.map((s,i)=>`<tr>
+    <td><b>${s.id}</b><br><span class="small">${s.title}</span></td>
+    <td>${tagFor(s.ctriStatus)}</td>
+    <td>${tagFor(s.ethicsStatus)}</td>
+    <td class="small">${s.ethicsRenewal}</td>
+    <td>${perms.edit ? `<select data-idx="${i}" class="ethSel"><option${s.ethicsStatus==="Approved"?" selected":""}>Approved</option><option${s.ethicsStatus==="Renewal due"?" selected":""}>Renewal due</option><option${s.ethicsStatus==="Under review"?" selected":""}>Under review</option></select>` : `<span class="small">—</span>`}</td>
+  </tr>`).join('');
+  if(perms.edit){
+    document.querySelectorAll('.ethSel').forEach(sel=>sel.addEventListener('change', e=>{
+      const idx = e.target.dataset.idx;
+      const old = studies[idx].ethicsStatus;
+      studies[idx].ethicsStatus = e.target.value;
+      logAudit(`Updated ${studies[idx].id} ethics status: ${old} → ${e.target.value}`);
+      renderAll();
+    }));
+  }
+}
+
+function renderAEForm(){
+  const perms = ROLE_PERMS[currentRole()];
+  const wrap = document.getElementById('aeFormWrap');
+  if(!perms.addAE){ wrap.innerHTML = `<div class="locked">Only Pharmacovigilance Staff or Admin can log new AE/SAE events. Switch role above to try it.</div>`; return; }
+  wrap.innerHTML = `<div class="formgrid">
+    <div><label>Study</label><select id="fStudy">${studies.map(s=>`<option>${s.id}</option>`).join('')}</select></div>
+    <div><label>Subject ID</label><input id="fSubject" placeholder="S-0201"></div>
+    <div><label>Event term</label><input id="fEvent" placeholder="e.g. nausea"></div>
+    <div><label>Severity</label><select id="fSev"><option>AE</option><option>SAE</option></select></div>
+    <div><label>MedDRA code</label><input id="fMeddra" placeholder="10028813"></div>
+  </div>
+  <div style="padding:0 18px 16px"><button class="cta" id="fSubmit">Log event</button></div>`;
+  document.getElementById('fSubmit').addEventListener('click', ()=>{
+    const study=document.getElementById('fStudy').value, subj=document.getElementById('fSubject').value||"S-0000",
+      ev=document.getElementById('fEvent').value||"Unspecified event", sev=document.getElementById('fSev').value,
+      code=document.getElementById('fMeddra').value||"—";
+    aeRecords.unshift({study, subject:subj, event:ev, severity:sev, meddra:code, reported:new Date().toISOString().slice(0,16), hours: sev==="SAE"?24:168, status:"Open"});
+    logAudit(`Logged ${sev} "${ev}" for ${study} (${subj}) — regulatory clock started`);
+    renderAll();
+  });
+}
+
+function renderAETable(){
+  const tb = document.querySelector('#aeTable tbody');
+  tb.innerHTML = aeRecords.map(r=>{
+    const dl = new Date(r.reported); dl.setHours(dl.getHours()+r.hours);
+    const hoursLeft = Math.round((dl - new Date("2026-09-23T12:00"))/3600000);
+    const dlLabel = r.status==="Closed" ? "closed" : (hoursLeft<0? `overdue ${-hoursLeft}h` : `${hoursLeft}h left`);
+    const dlCls = r.status==="Closed" ? "" : (hoursLeft<0?"red":hoursLeft<24?"amber":"");
+    return `<tr>
+      <td>${r.study}</td><td>${r.event}<br><span class="small">${r.subject}</span></td>
+      <td>${r.severity==="SAE"?`<span class="tag red">SAE</span>`:`<span class="tag amber">AE</span>`}</td>
+      <td class="small" style="font-family:var(--font-mono)">${r.meddra}</td>
+      <td class="small">${r.reported.replace('T',' ')}</td>
+      <td class="deadline ${dlCls}">${dlLabel}</td>
+      <td>${tagFor(r.status)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAudit(){
+  const el = document.getElementById('auditList');
+  if(!auditLog.length){ el.innerHTML = `<div class="locked">No actions recorded yet this session.</div>`; return; }
+  el.innerHTML = auditLog.map(a=>`<div class="audit-item"><span class="t">${a.t}</span><span><b>${a.role}</b> — ${a.action}</span></div>`).join('');
+}
+
+function renderPermNote(){
+  document.getElementById('permNote').innerHTML = `<b>${currentRole()}</b><br>${ROLE_PERMS[currentRole()].note}`;
+}
+
+function renderAll(){
+  renderKPIs(); renderAlerts(); renderStudyTable(); renderRegTable(); renderAEForm(); renderAETable(); renderAudit(); renderPermNote();
+}
+
+document.getElementById('roleSel').addEventListener('change', ()=>{ logAudit(`Switched active view to ${currentRole()}`); renderAll(); });
+
+document.getElementById('navBtns').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+});
+
+renderAll();
+</script>
+</body>
+</html>
