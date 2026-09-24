@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import './index.css';
+import Analytics from './Analytics';
 
 const ROLE_PERMS = {
-  "Principal Investigator": {edit:false, addAE:false, allowedTabs: ['portfolio', 'pv', 'audit'], defaultTab: 'portfolio', note:"Study Oversight: Focus on trial health, enrollment vs target, open queries, and SAE overview."},
+  "Principal Investigator": {edit:false, addAE:false, allowedTabs: ['portfolio', 'analytics', 'pv', 'audit'], defaultTab: 'portfolio', note:"Study Oversight: Focus on trial health, enrollment vs target, open queries, and SAE overview."},
   "Study Coordinator": {edit:false, addAE:false, allowedTabs: ['portfolio'], defaultTab: 'portfolio', note:"Daily Operations: Focus on participant screening, data entry, and upcoming scheduled visits."},
   "Monitor": {edit:false, addAE:false, allowedTabs: ['portfolio', 'audit'], defaultTab: 'portfolio', note:"Site Monitoring: Focus on site activation, protocol deviations, data-quality, and overdue visits."},
   "Ethics Committee": {edit:true, addAE:false, allowedTabs: ['regulatory', 'pv'], defaultTab: 'regulatory', note:"Safety & Ethics Oversight: Focus on approvals, renewals, and SAE safety signals."},
   "Pharmacovigilance Staff": {edit:false, addAE:true, allowedTabs: ['pv', 'audit'], defaultTab: 'pv', note:"Safety Intelligence: Focus on NPvCC logging, dual-coding (NAMASTE/MedDRA), and regulatory clocks."},
-  "Admin": {edit:true, addAE:true, allowedTabs: ['portfolio', 'regulatory', 'pv', 'audit'], defaultTab: 'portfolio', note:"Portfolio Command Center: Full cross-trial analytics, exception alerts, and user management."},
-  "Regulator (read-only)": {edit:false, addAE:false, allowedTabs: ['portfolio', 'regulatory', 'pv', 'audit'], defaultTab: 'portfolio', note:"Regulatory Oversight: Immutable, read-only view of authorized study milestones and safety data."}
+  "Admin": {edit:true, addAE:true, allowedTabs: ['portfolio', 'analytics', 'regulatory', 'pv', 'audit'], defaultTab: 'portfolio', note:"Portfolio Command Center: Full cross-trial analytics, exception alerts, and user management."},
+  "Regulator (read-only)": {edit:false, addAE:false, allowedTabs: ['portfolio', 'analytics', 'regulatory', 'pv', 'audit'], defaultTab: 'portfolio', note:"Regulatory Oversight: Immutable, read-only view of authorized study milestones and safety data."}
 };
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -157,6 +158,7 @@ function App() {
         </div>
         <nav className="nav">
           {perms.allowedTabs.includes('portfolio') && <button className={tab==='portfolio'?'active':''} onClick={()=>setTab('portfolio')}>Portfolio &amp; KPIs</button>}
+          {perms.allowedTabs.includes('analytics') && <button className={tab==='analytics'?'active':''} onClick={()=>setTab('analytics')}>Analytics</button>}
           {perms.allowedTabs.includes('regulatory') && <button className={tab==='regulatory'?'active':''} onClick={()=>setTab('regulatory')}>Regulatory &amp; Ethics</button>}
           {perms.allowedTabs.includes('pv') && <button className={tab==='pv'?'active':''} onClick={()=>setTab('pv')}>Pharmacovigilance</button>}
           {perms.allowedTabs.includes('audit') && <button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Trail</button>}
@@ -214,6 +216,12 @@ function App() {
               </table>
             </div>
           </div>
+        </section>
+        )}
+
+        {perms.allowedTabs.includes('analytics') && (
+        <section className={`section ${tab==='analytics'?'active':''}`}>
+          <Analytics studies={studies} aeRecords={aeRecords} />
         </section>
         )}
 
