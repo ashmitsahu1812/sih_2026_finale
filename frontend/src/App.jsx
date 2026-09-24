@@ -141,21 +141,15 @@ function App() {
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <header className="topbar">
         <div className="brand">
-          <span className="mark">MINISTRY OF AYUSH · AIIA</span>
-          <h1>Clinical Trials Dashboard</h1>
+          <div className="logo-icon">P</div>
+          <div className="brand-text">
+            <h1>PRAMANA</h1>
+            <span className="mark">AIIA CTMS · SIH 2026 CONCEPT DEMO</span>
+          </div>
         </div>
-        <div className="role-block">
-          <label>Viewing as</label>
-          <select value={role} onChange={e => { 
-            const newRole = e.target.value;
-            setRole(newRole);
-            setTab(ROLE_PERMS[newRole].defaultTab);
-          }}>
-            {Object.keys(ROLE_PERMS).map(r => <option key={r}>{r}</option>)}
-          </select>
-        </div>
+        
         <nav className="nav">
           {perms.allowedTabs.includes('portfolio') && <button className={tab==='portfolio'?'active':''} onClick={()=>setTab('portfolio')}>Portfolio &amp; KPIs</button>}
           {perms.allowedTabs.includes('analytics') && <button className={tab==='analytics'?'active':''} onClick={()=>setTab('analytics')}>Analytics</button>}
@@ -163,10 +157,29 @@ function App() {
           {perms.allowedTabs.includes('pv') && <button className={tab==='pv'?'active':''} onClick={()=>setTab('pv')}>Pharmacovigilance</button>}
           {perms.allowedTabs.includes('audit') && <button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Trail</button>}
         </nav>
-        <div className="perm-note">
-          <b>{role}</b><br/>{perms.note}
+
+        <div className="topbar-right">
+          <span className="synthetic-badge">ALL DATA SYNTHETIC — NOT REAL TRIALS</span>
         </div>
-      </aside>
+      </header>
+
+      <div className="subheader">
+        <div className="role-block">
+          <label>ROLE IN SESSION:</label>
+          <select value={role} onChange={e => { 
+            const newRole = e.target.value;
+            setRole(newRole);
+            setTab(ROLE_PERMS[newRole].defaultTab);
+          }}>
+            {Object.keys(ROLE_PERMS).map(r => <option key={r}>{r}</option>)}
+          </select>
+          <span className="perm-note">{perms.note}</span>
+        </div>
+        
+        <div className="subheader-actions">
+           {tab === 'audit' && <button onClick={verifyAuditLog} className="cta">Verify Integrity</button>}
+        </div>
+      </div>
 
       <main>
         {perms.allowedTabs.includes('portfolio') && (
@@ -175,39 +188,45 @@ function App() {
             <div><h2>Portfolio &amp; KPI Layer</h2><p>Stage 1 MVP — real-time view replacing spreadsheet tracking</p></div>
           </div>
           <div className="kpis">
-            <div className="kpi"><div className="num">{active}</div><div className="lbl">Active studies</div></div>
-            <div className="kpi"><div className="num">{totalEnrolled}/{totalTarget}</div><div className="lbl">Enrolment vs. target</div></div>
-            <div className={`kpi ${renewalsDue?'warn':'ok'}`}><div className="num">{renewalsDue}</div><div className="lbl">CTRI/ethics renewals due ≤30d</div></div>
-            <div className={`kpi ${overdueVisits?'warn':'ok'}`}><div className="num">{overdueVisits}</div><div className="lbl">Overdue monitoring visits</div></div>
-            <div className={`kpi ${openAE?'warn':'ok'}`}><div className="num">{openAE}</div><div className="lbl">Open AE/SAE cases</div></div>
+            <div className="kpi"><div className="lbl">SITES ACTIVE</div><div className="num" style={{color: 'var(--text)'}}>{active} / {studies.length}</div><div className="kpi-sub">studies running</div></div>
+            <div className="kpi"><div className="lbl">ENROLMENT</div><div className="num" style={{color: 'var(--green)'}}>{totalEnrolled} / {totalTarget}</div><div className="kpi-sub">{Math.round(totalEnrolled/totalTarget*100)}% of target</div></div>
+            <div className={`kpi ${renewalsDue?'warn':'ok'}`}><div className="lbl">RENEWALS DUE</div><div className="num">{renewalsDue}</div><div className="kpi-sub">≤30d to expiry</div></div>
+            <div className={`kpi ${overdueVisits?'warn':'ok'}`}><div className="lbl">OVERDUE VISITS</div><div className="num">{overdueVisits}</div><div className="kpi-sub">monitoring delayed</div></div>
+            <div className={`kpi ${openAE?'warn':'ok'}`}><div className="lbl">SAFETY EVENTS</div><div className="num" style={{color: openAE ? 'var(--alert-orange)' : 'var(--green)'}}>{openAE}</div><div className="kpi-sub">open cases</div></div>
           </div>
           
-          <div className="panel">
-            <h3>Alerts</h3>
-            <div>
-              {alerts.map((a, i) => (
-                <div key={i} className="alert-row">
-                  <span className={`dot ${a.sev}`}></span><span>{a.text}</span>
-                </div>
-              ))}
+          {alerts.length > 0 && (
+            <div className="alert-banner">
+              <div className="alert-icon">!</div>
+              <div className="alert-content">
+                <strong>Attention Required</strong>
+                {alerts.map((a, i) => (
+                  <div key={i}>{a.text}</div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="panel">
-            <h3>Study Portfolio</h3>
+          <div className="panel" style={{border: 'none', boxShadow: 'none'}}>
             <div className="overflow-x">
-              <table>
-                <thead><tr><th>Study</th><th>CTRI</th><th>Ethics</th><th>Enrolment</th><th>Deviations</th><th>Monitoring</th></tr></thead>
+              <table className="styled-table">
+                <thead><tr><th>SITE / STUDY</th><th>CTRI</th><th>ETHICS</th><th>ENROLLED</th><th>PROGRESS</th><th>DEVIATIONS</th><th>MONITORING</th></tr></thead>
                 <tbody>
                   {studies.map(s => {
                     const pct = Math.min(100, Math.round(100*s.enrolled/s.target));
                     return (
                       <tr key={s.id}>
                         <td><b>{s.id}</b><br/><span className="small">{s.title}</span></td>
-                        <td><span className="small" style={{fontFamily:'var(--font-mono)'}}>{s.ctri}</span></td>
+                        <td><span className="small" style={{fontFamily:'var(--mono)'}}>{s.ctri}</span></td>
                         <td>{tagFor(s.ethicsStatus)}</td>
-                        <td>{s.enrolled}/{s.target}<div className="bar"><i style={{width:`${pct}%`}}></i></div></td>
-                        <td>{s.deviations}</td>
+                        <td style={{textAlign: 'center'}}>{s.enrolled}</td>
+                        <td style={{width: '200px'}}>
+                          <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                            <div className="bar"><i style={{width:`${pct}%`, background: pct < 50 ? 'var(--alert-orange)' : 'var(--green)'}}></i></div>
+                            <span className="small">{pct}%</span>
+                          </div>
+                        </td>
+                        <td style={{textAlign: 'center'}}>{s.deviations}</td>
                         <td className="small">Next: {s.nextVisit}</td>
                       </tr>
                     );
@@ -230,11 +249,10 @@ function App() {
           <div className="pagehead">
             <div><h2>Regulatory &amp; Ethics Tracker</h2><p>CTRI registration and IEC approval milestones — NDCT Rules 2019</p></div>
           </div>
-          <div className="panel">
-            <h3>Milestones</h3>
+          <div className="panel" style={{border: 'none', boxShadow: 'none'}}>
             <div className="overflow-x">
-              <table>
-                <thead><tr><th>Study</th><th>CTRI status</th><th>Ethics status</th><th>Ethics renewal</th><th>Update</th></tr></thead>
+              <table className="styled-table">
+                <thead><tr><th>STUDY</th><th>CTRI STATUS</th><th>ETHICS STATUS</th><th>ETHICS RENEWAL</th><th>ACTION</th></tr></thead>
                 <tbody>
                   {studies.map(s => (
                     <tr key={s.id}>
@@ -244,7 +262,7 @@ function App() {
                       <td className="small">{s.ethicsRenewal}</td>
                       <td>
                         {perms.edit ? (
-                          <select value={s.ethicsStatus} onChange={(e) => updateEthicsStatus(s.id, s.ethicsStatus, e.target.value)}>
+                          <select className="table-select" value={s.ethicsStatus} onChange={(e) => updateEthicsStatus(s.id, s.ethicsStatus, e.target.value)}>
                             <option>Approved</option>
                             <option>Renewal due</option>
                             <option>Under review</option>
@@ -294,11 +312,10 @@ function App() {
               </form>
             )}
           </div>
-          <div className="panel">
-            <h3>AE / SAE register</h3>
+          <div className="panel" style={{border: 'none', boxShadow: 'none'}}>
             <div className="overflow-x">
-              <table>
-                <thead><tr><th>Study</th><th>Event / Coding</th><th>Severity</th><th>Reported</th><th>Deadline</th><th>Status</th></tr></thead>
+              <table className="styled-table">
+                <thead><tr><th>STUDY</th><th>EVENT / CODING</th><th>SEVERITY</th><th>REPORTED</th><th>DEADLINE</th><th>STATUS</th></tr></thead>
                 <tbody>
                   {aeRecords.map((r,i) => {
                     const reportedAt = new Date(r.reported);
@@ -343,9 +360,8 @@ function App() {
 
         {perms.allowedTabs.includes('audit') && (
         <section className={`section ${tab==='audit'?'active':''}`}>
-          <div className="pagehead" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <div className="pagehead">
             <div><h2>Audit Trail</h2><p>Immutable, time-stamped log — ALCOA+ aligned with SHA-256 Hash Chaining</p></div>
-            <button onClick={verifyAuditLog} className="cta">Verify Integrity</button>
           </div>
           
           {auditStatus && (
@@ -362,19 +378,19 @@ function App() {
             </div>
           )}
 
-          <div className="panel">
+          <div className="panel" style={{border: 'none', boxShadow: 'none'}}>
             <div>
               {!auditLog.length ? (
                 <div className="locked">No actions recorded yet.</div>
               ) : (
                 <div className="overflow-x">
-                <table>
+                <table className="styled-table">
                   <thead>
                     <tr>
-                      <th>Time</th>
-                      <th>Role</th>
-                      <th>Action</th>
-                      <th>Hash</th>
+                      <th>TIME</th>
+                      <th>ROLE</th>
+                      <th>ACTION</th>
+                      <th>HASH</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -383,7 +399,7 @@ function App() {
                         <td className="small" style={{whiteSpace: 'nowrap'}}>{a.t.replace('T', ' ').substring(0, 16)}</td>
                         <td><b>{a.role}</b></td>
                         <td>{a.action}</td>
-                        <td style={{fontFamily: 'var(--font-mono)', fontSize: '11px', opacity: 0.5, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis'}} title={a.currentHash}>
+                        <td style={{fontFamily: 'var(--mono)', fontSize: '11px', opacity: 0.5, maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis'}} title={a.currentHash}>
                           {a.currentHash}
                         </td>
                       </tr>
