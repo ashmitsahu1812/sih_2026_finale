@@ -19,6 +19,7 @@ function App() {
   const [studies, setStudies] = useState([]);
   const [aeRecords, setAeRecords] = useState([]);
   const [auditLog, setAuditLog] = useState([]);
+  const [auditStatus, setAuditStatus] = useState(null); // null, 'checking', 'valid', 'invalid'
 
   const loadData = async () => {
     try {
@@ -38,25 +39,46 @@ function App() {
   useEffect(() => { loadData(); }, []);
 
   const logAudit = async (action) => {
-    const t = new Date().toISOString().slice(0,16).replace('T',' ');
-    await fetch(`${API_URL}/audit`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ t, role, action })
-    });
+    // Audit is now handled on the server side for ethics updates and AE logging
+    // But we still load data after
     loadData();
   };
 
   const updateEthicsStatus = async (id, oldStatus, newStatus) => {
     await fetch(`${API_URL}/studies/${id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ethicsStatus: newStatus })
+      body: JSON.stringify({ ethicsStatus: newStatus, role })
     });
-    await logAudit(`Updated ${id} ethics status: ${oldStatus} → ${newStatus}`);
+    loadData();
   };
+
+  const verifyAuditLog = async () => {
+    setAuditStatus('checking');
+    try {
+      const res = await fetch(`${API_URL}/audit/verify`);
+      const data = await res.json();
+      setAuditStatus(data.valid ? 'valid' : 'invalid');
+    } catch (e) {
+      setAuditStatus('error');
+    }
+  };
+
+  const corruptAuditLog = async () => {
+    await fetch(`${API_URL}/audit/corrupt`, { method: 'POST' });
+    loadData();
+    setAuditStatus(null);
+  };
+
+  // Helper for real-time countdown (use current time instead of static date)
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 10000); // update every 10s
+    return () => clearInterval(timer);
+  }, []);
 
   const daysUntil = (dateStr) => {
     if(dateStr==="—") return null;
-    return Math.round((new Date(dateStr) - new Date("2026-09-23")) / 86400000);
+    return Math.round((new Date(dateStr) - now) / 86400000);
   };
 
   const active = studies.filter(s=>s.ctriStatus!=="Pre-registration").length;
@@ -82,10 +104,13 @@ function App() {
     if(dVis!==null && dVis<0) alerts.push({sev:"red", text:`${s.id} — monitoring visit overdue by ${-dVis} day(s)`});
     if(s.target>0 && s.enrolled/s.target < 0.4 && s.ctriStatus==="Registered") alerts.push({sev:"amber", text:`${s.id} — enrolment lag: ${s.enrolled}/${s.target} (${Math.round(100*s.enrolled/s.target)}%)`});
   });
+  
   aeRecords.forEach(r=>{
     if(r.status==="Open"){
-      const dl = new Date(r.reported); dl.setHours(dl.getHours()+r.hours);
-      const hoursLeft = (dl - new Date("2026-09-23T12:00")) / 3600000;
+      const reportedAt = new Date(r.reported);
+      const deadline = new Date(reportedAt.getTime() + (r.severity === "SAE" ? 24 : 168) * 3600000);
+      const hoursLeft = (deadline - now) / 3600000;
+      
       if(hoursLeft<0) alerts.push({sev:"red", text:`${r.study} — ${r.severity} "${r.event}" past reporting deadline`});
       else if(hoursLeft<24) alerts.push({sev:"amber", text:`${r.study} — ${r.severity} "${r.event}" reporting due in ${Math.round(hoursLeft)}h`});
     }
@@ -95,15 +120,20 @@ function App() {
   const handleAEForm = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const study = fd.get('study'), subj = fd.get('subject')||"S-0000", ev = fd.get('event')||"Unspecified event", sev = fd.get('severity'), code = fd.get('meddra')||"—";
-    const reported = new Date().toISOString().slice(0,16);
-    const hours = sev==="SAE"?24:168;
+    const study = fd.get('study'), subj = fd.get('subject')||"S-0000", ev = fd.get('event')||"Unspecified event", sev = fd.get('severity');
+    const meddra = fd.get('meddra')||"—";
+    const namaste = fd.get('namaste')||"—";
+    const icd11tm2 = fd.get('icd11tm2')||"—";
+    const api_ref = fd.get('api_ref')||"—";
+    
+    const reported = now.toISOString(); // Use actual current time
+    
     await fetch(`${API_URL}/ae`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ study, subject:subj, event:ev, severity:sev, meddra:code, reported, hours, status:"Open" })
+      body: JSON.stringify({ study, subject:subj, event:ev, severity:sev, meddra, namaste, icd11tm2, api_ref, reported, status:"Open", role })
     });
-    await logAudit(`Logged ${sev} "${ev}" for ${study} (${subj}) — regulatory clock started`);
     loadData();
+    e.target.reset(); // clear form
   };
 
   const perms = ROLE_PERMS[role];
@@ -117,7 +147,7 @@ function App() {
         </div>
         <div className="role-block">
           <label>Viewing as</label>
-          <select value={role} onChange={e => { setRole(e.target.value); logAudit(`Switched active view to ${e.target.value}`); }}>
+          <select value={role} onChange={e => { setRole(e.target.value); }}>
             {Object.keys(ROLE_PERMS).map(r => <option key={r}>{r}</option>)}
           </select>
         </div>
@@ -216,22 +246,34 @@ function App() {
 
         <section className={`section ${tab==='pv'?'active':''}`}>
           <div className="pagehead">
-            <div><h2>Pharmacovigilance Module</h2><p>NPvCC — AE/SAE intake, MedDRA coding, regulatory-clock countdown</p></div>
+            <div><h2>Pharmacovigilance Module</h2><p>NPvCC — AE/SAE intake, Dual Coding, and Regulatory Clock Countdown</p></div>
           </div>
-          <div className="panel">
-            <h3>Report a new event</h3>
+          <div className="panel" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <h3>Report a new event (Dual-Coding Enabled)</h3>
+            <p style={{fontSize:'13px', color:'#475569', marginBottom:'16px'}}>
+              Supports standard regulatory reporting alongside traditional Ayurveda specific terminology.
+            </p>
             {!perms.addAE ? (
               <div className="locked">Only Pharmacovigilance Staff or Admin can log new AE/SAE events. Switch role above to try it.</div>
             ) : (
               <form onSubmit={handleAEForm}>
-                <div className="formgrid">
+                <div className="formgrid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
                   <div><label>Study</label><select name="study">{studies.map(s=><option key={s.id}>{s.id}</option>)}</select></div>
                   <div><label>Subject ID</label><input name="subject" placeholder="S-0201" /></div>
                   <div><label>Event term</label><input name="event" placeholder="e.g. nausea" /></div>
-                  <div><label>Severity</label><select name="severity"><option>AE</option><option>SAE</option></select></div>
-                  <div><label>MedDRA code</label><input name="meddra" placeholder="10028813" /></div>
+                  
+                  <div><label>Severity</label><select name="severity"><option>AE</option><option value="SAE">SAE (Starts 24h Clock)</option></select></div>
+                  
+                  <div style={{gridColumn: '1 / -1', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #cbd5e1'}}>
+                    <b style={{fontSize: '13px', color: '#334155'}}>Intervention & Event Coding</b>
+                  </div>
+                  <div><label>NAMASTE Code (Ayush)</label><input name="namaste" placeholder="e.g. NM-501" /></div>
+                  <div><label>WHO ICD-11 TM2 Code</label><input name="icd11tm2" placeholder="e.g. TM2-45A" /></div>
+                  <div><label>MedDRA Code (Global)</label><input name="meddra" placeholder="10028813" /></div>
+                  <div><label>API Reference (Formulation)</label><input name="api_ref" placeholder="API-VOL1-45" /></div>
+                  
                 </div>
-                <div style={{padding:'0 18px 16px'}}><button type="submit" className="cta">Log event</button></div>
+                <div style={{padding:'16px 18px'}}><button type="submit" className="cta">Log event &amp; Start Clock</button></div>
               </form>
             )}
           </div>
@@ -239,20 +281,38 @@ function App() {
             <h3>AE / SAE register</h3>
             <div className="overflow-x">
               <table>
-                <thead><tr><th>Study</th><th>Event</th><th>Severity</th><th>MedDRA</th><th>Reported</th><th>Deadline</th><th>Status</th></tr></thead>
+                <thead><tr><th>Study</th><th>Event / Coding</th><th>Severity</th><th>Reported</th><th>Deadline</th><th>Status</th></tr></thead>
                 <tbody>
                   {aeRecords.map((r,i) => {
-                    const dl = new Date(r.reported); dl.setHours(dl.getHours()+r.hours);
-                    const hoursLeft = Math.round((dl - new Date("2026-09-23T12:00"))/3600000);
-                    const dlLabel = r.status==="Closed" ? "closed" : (hoursLeft<0? `overdue ${-hoursLeft}h` : `${hoursLeft}h left`);
-                    const dlCls = r.status==="Closed" ? "" : (hoursLeft<0?"red":hoursLeft<24?"amber":"");
+                    const reportedAt = new Date(r.reported);
+                    // Standard AE gets 168h (7 days), SAE gets 24h
+                    const hoursAllowed = r.severity === "SAE" ? 24 : 168;
+                    const deadline = new Date(reportedAt.getTime() + (hoursAllowed * 3600000));
+                    
+                    const msLeft = deadline - now;
+                    const hoursLeft = Math.floor(msLeft / 3600000);
+                    const minsLeft = Math.floor((msLeft % 3600000) / 60000);
+                    
+                    const dlLabel = r.status==="Closed" ? "closed" : (
+                      msLeft < 0 ? `overdue ${-hoursLeft}h` : `${hoursLeft}h ${minsLeft}m left`
+                    );
+                    const dlCls = r.status==="Closed" ? "" : (msLeft<0 ? "red" : msLeft<24*3600000 ? "amber" : "green");
+                    
                     return (
                       <tr key={i}>
-                        <td>{r.study}</td><td>{r.event}<br/><span className="small">{r.subject}</span></td>
+                        <td>{r.study}<br/><span className="small">{r.subject}</span></td>
+                        <td>
+                          <b>{r.event}</b><br/>
+                          <span className="small" style={{fontFamily:'var(--font-mono)', color: '#64748b'}}>
+                            NAMASTE: {r.namaste || '—'} | TM2: {r.icd11tm2 || '—'} | MedDRA: {r.meddra || '—'}
+                          </span>
+                        </td>
                         <td>{r.severity==="SAE"?<span className="tag red">SAE</span>:<span className="tag amber">AE</span>}</td>
-                        <td className="small" style={{fontFamily:'var(--font-mono)'}}>{r.meddra}</td>
-                        <td className="small">{r.reported.replace('T',' ')}</td>
-                        <td className={`deadline ${dlCls}`}>{dlLabel}</td>
+                        <td className="small">{r.reported.replace('T',' ').substring(0, 16)}</td>
+                        <td className={`deadline ${dlCls}`}>
+                           {r.severity==="SAE" && r.status==="Open" && <span style={{display:'inline-block', width:'8px', height:'8px', background:'red', borderRadius:'50%', marginRight:'6px', animation:'pulse 1.5s infinite'}}></span>}
+                           <b>{dlLabel}</b>
+                        </td>
                         <td>{tagFor(r.status)}</td>
                       </tr>
                     );
@@ -264,22 +324,71 @@ function App() {
         </section>
 
         <section className={`section ${tab==='audit'?'active':''}`}>
-          <div className="pagehead">
-            <div><h2>Audit Trail</h2><p>Immutable, time-stamped log — ALCOA+ aligned</p></div>
+          <div className="pagehead" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+            <div><h2>Audit Trail</h2><p>Immutable, time-stamped log — ALCOA+ aligned with SHA-256 Hash Chaining</p></div>
+            <button onClick={verifyAuditLog} className="cta" style={{background:'#0f172a'}}>Verify Integrity</button>
           </div>
+          
+          {auditStatus && (
+            <div style={{
+              margin: '0 0 20px 0', padding: '16px', borderRadius: '8px',
+              background: auditStatus === 'valid' ? '#dcfce7' : auditStatus === 'invalid' ? '#fee2e2' : '#f1f5f9',
+              border: `1px solid ${auditStatus === 'valid' ? '#22c55e' : auditStatus === 'invalid' ? '#ef4444' : '#cbd5e1'}`,
+              color: auditStatus === 'valid' ? '#166534' : auditStatus === 'invalid' ? '#991b1b' : '#334155',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <div>
+                <b>{auditStatus === 'valid' ? '✅ Blockchain Integrity Verified' : auditStatus === 'invalid' ? '❌ TAMPERING DETECTED' : '⏳ Checking Hashes...'}</b>
+                <p style={{margin: '4px 0 0', fontSize: '13px'}}>
+                  {auditStatus === 'valid' ? 'All records are cryptographically secured and sequential.' : auditStatus === 'invalid' ? 'Hash chain broken! A record was modified after it was appended.' : 'Recalculating SHA-256 hashes...'}
+                </p>
+              </div>
+              {auditStatus === 'valid' && (
+                <button onClick={corruptAuditLog} style={{padding:'6px 12px', fontSize:'12px', border:'1px solid #991b1b', color:'#991b1b', background:'white', borderRadius:'4px', cursor:'pointer'}}>Simulate Tampering (Demo)</button>
+              )}
+            </div>
+          )}
+
           <div className="panel">
             <div>
               {!auditLog.length ? (
                 <div className="locked">No actions recorded yet.</div>
               ) : (
-                auditLog.map((a, i) => (
-                  <div key={i} className="audit-item"><span className="t">{a.t}</span><span><b>{a.role}</b> — {a.action}</span></div>
-                ))
+                <table style={{width: '100%', fontSize: '13px', borderCollapse: 'collapse'}}>
+                  <thead>
+                    <tr style={{textAlign: 'left', borderBottom: '1px solid #cbd5e1', color: '#64748b'}}>
+                      <th style={{padding: '8px 0'}}>Time</th>
+                      <th>Role</th>
+                      <th>Action</th>
+                      <th>Hash</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditLog.map((a, i) => (
+                      <tr key={i} style={{borderBottom: '1px solid #e2e8f0'}}>
+                        <td style={{padding: '8px 0', color: '#64748b', whiteSpace: 'nowrap'}}>{a.t.replace('T', ' ').substring(0, 16)}</td>
+                        <td><b>{a.role}</b></td>
+                        <td>{a.action}</td>
+                        <td style={{fontFamily: 'monospace', fontSize: '11px', color: '#94a3b8', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis'}} title={a.currentHash}>
+                          {a.currentHash}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>
         </section>
       </main>
+      
+      <style>{`
+        @keyframes pulse {
+          0% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.5); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+      `}</style>
     </div>
   );
 }
