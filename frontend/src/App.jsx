@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import './index.css';
 import Analytics from './Analytics';
 
@@ -207,32 +208,81 @@ function App() {
             </div>
           )}
 
-          <div className="panel" style={{border: 'none', boxShadow: 'none'}}>
-            <div className="overflow-x">
-              <table className="styled-table">
-                <thead><tr><th>SITE / STUDY</th><th>CTRI</th><th>ETHICS</th><th>ENROLLED</th><th>PROGRESS</th><th>DEVIATIONS</th><th>MONITORING</th></tr></thead>
-                <tbody>
-                  {studies.map(s => {
-                    const pct = Math.min(100, Math.round(100*s.enrolled/s.target));
-                    return (
-                      <tr key={s.id}>
-                        <td><b>{s.id}</b><br/><span className="small">{s.title}</span></td>
-                        <td><span className="small" style={{fontFamily:'var(--mono)'}}>{s.ctri}</span></td>
-                        <td>{tagFor(s.ethicsStatus)}</td>
-                        <td style={{textAlign: 'center'}}>{s.enrolled}</td>
-                        <td style={{width: '200px'}}>
-                          <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                            <div className="bar"><i style={{width:`${pct}%`, background: pct < 50 ? 'var(--alert-orange)' : 'var(--green)'}}></i></div>
-                            <span className="small">{pct}%</span>
-                          </div>
-                        </td>
-                        <td style={{textAlign: 'center'}}>{s.deviations}</td>
-                        <td className="small">Next: {s.nextVisit}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+          <div className="dashboard-grid">
+            <div className="dashboard-col">
+              <div className="panel">
+                <h3>Enrolment Overview</h3>
+                <div style={{ height: 220, padding: '20px 10px 0' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Enrolled', value: totalEnrolled },
+                          { name: 'Remaining', value: Math.max(0, totalTarget - totalEnrolled) }
+                        ]}
+                        cx="50%" cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        <Cell fill="var(--green)" />
+                        <Cell fill="#e2e8f0" />
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{textAlign:'center', marginTop:'-130px', fontWeight:'700', fontSize:'24px', color:'var(--text)'}}>
+                    {Math.round(totalEnrolled/totalTarget*100)}%
+                  </div>
+                </div>
+              </div>
+
+              <div className="panel">
+                <h3>Site Performance</h3>
+                <div style={{ height: 200, padding: '10px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={studies.slice(0, 5)} margin={{top:10, right:10, left:-20, bottom:0}}>
+                      <XAxis dataKey="id" tick={{fontSize: 10}} axisLine={false} tickLine={false} />
+                      <YAxis tick={{fontSize: 10}} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{fill: '#f1f5f9'}} />
+                      <Bar dataKey="enrolled" fill="var(--navy)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-col-wide">
+              <div className="panel">
+                <h3>Site Enrolment - Synthetic</h3>
+                <div className="overflow-x">
+                  <table className="styled-table">
+                    <thead><tr><th>SITE / STUDY</th><th>CTRI</th><th>ETHICS</th><th>ENROLLED</th><th>PROGRESS</th><th>DEVIATIONS</th><th>MONITORING</th></tr></thead>
+                    <tbody>
+                      {studies.map(s => {
+                        const pct = Math.min(100, Math.round(100*s.enrolled/s.target));
+                        return (
+                          <tr key={s.id}>
+                            <td><b>{s.id}</b><br/><span className="small">{s.title}</span></td>
+                            <td><span className="small" style={{fontFamily:'var(--mono)'}}>{s.ctri}</span></td>
+                            <td>{tagFor(s.ethicsStatus)}</td>
+                            <td style={{textAlign: 'center'}}>{s.enrolled}</td>
+                            <td style={{width: '200px'}}>
+                              <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
+                                <div className="bar"><i style={{width:`${pct}%`, background: pct < 50 ? 'var(--alert-orange)' : 'var(--green)'}}></i></div>
+                                <span className="small">{pct}%</span>
+                              </div>
+                            </td>
+                            <td style={{textAlign: 'center'}}>{s.deviations}</td>
+                            <td className="small">Next: {s.nextVisit}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </section>

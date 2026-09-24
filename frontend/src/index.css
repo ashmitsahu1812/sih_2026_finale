@@ -141,3 +141,24 @@ button.cta:hover { background: var(--accent-hover); }
   .nav button { padding: 8px 12px; white-space: nowrap; }
   .subheader { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 20px;
+}
+.dashboard-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.dashboard-col-wide {
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
