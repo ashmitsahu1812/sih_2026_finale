@@ -273,7 +273,7 @@ function App() {
                   
                   <div><label>Severity</label><select name="severity"><option>AE</option><option value="SAE">SAE (Starts 24h Clock)</option></select></div>
                   
-                  <div style={{gridColumn: '1 / -1', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.1)'}}>
+                  <div style={{gridColumn: '1 / -1', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)'}}>
                     <b className="small">Intervention & Event Coding</b>
                   </div>
                   <div><label>NAMASTE Code (Ayush)</label><input name="namaste" placeholder="e.g. NM-501" /></div>
@@ -312,7 +312,7 @@ function App() {
                         <td>{r.study}<br/><span className="small">{r.subject}</span></td>
                         <td>
                           <b>{r.event}</b><br/>
-                          <span className="small" style={{fontFamily:'var(--font-mono)', color: '#64748b'}}>
+                          <span className="small" style={{fontFamily:'var(--mono)'}}>
                             NAMASTE: {r.namaste || '—'} | TM2: {r.icd11tm2 || '—'} | MedDRA: {r.meddra || '—'}
                           </span>
                         </td>
@@ -389,14 +389,7 @@ function App() {
         </section>
         )}
       </main>
-      
-      <style>{`
-        @keyframes pulse {
-          0% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.5); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
+
     </div>
   );
 }
