@@ -3,11 +3,11 @@
 :root {
   --bg: #f7f6f3;
   --bg-card: #ffffff;
-  --bg-hover: #f2f1ed;
+  --bg-hover: #ebe9e4;
   --bg-sidebar: #fdfcfa;
-  --border: #e8e5df;
-  --text: #2c2a25;
-  --text-muted: #8a857c;
+  --border: #dcd9d2;
+  --text: #1a1916;
+  --text-muted: #5c584f;
   --accent: #1a7a6d;
   --accent-hover: #15635a;
   --accent-light: rgba(26,122,109,0.08);
@@ -74,9 +74,9 @@ option { background: var(--bg-card); color: var(--text); }
 .panel > h3 { margin: 0; padding: 13px 20px; border-bottom: 1px solid var(--border); font-family: var(--font-head); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
 /* Tables */
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
-th { color: var(--text-muted); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--text-muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; background: var(--bg); }
 tr:last-child td { border-bottom: none; }
 tr { transition: background 0.1s; }
 tbody tr:hover { background: var(--bg-hover); }
