@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import './index.css';
 
 const ROLE_PERMS = {
-  "Principal Investigator": {edit:false, addAE:false, note:"Read/drill-down access to own studies. Cannot alter regulatory status or file AE reports directly."},
-  "Study Coordinator": {edit:false, addAE:false, note:"Enrolment and deviation data entry (view-only in this prototype)."},
-  "Monitor": {edit:false, addAE:false, note:"Monitoring-visit tracking access. Read-only on regulatory status."},
-  "Ethics Committee": {edit:true, addAE:false, note:"Can update CTRI / ethics milestone status."},
-  "Pharmacovigilance Staff": {edit:false, addAE:true, note:"Can log new AE/SAE events into the NPvCC register."},
-  "Admin": {edit:true, addAE:true, note:"Full access — regulatory updates, AE intake, audit trail."},
-  "Regulator (read-only)": {edit:false, addAE:false, note:"Full visibility, no write access — per RBAC design."}
+  "Principal Investigator": {edit:false, addAE:false, allowedTabs: ['portfolio', 'pv', 'audit'], defaultTab: 'portfolio', note:"Study Oversight: Focus on trial health, enrollment vs target, open queries, and SAE overview."},
+  "Study Coordinator": {edit:false, addAE:false, allowedTabs: ['portfolio'], defaultTab: 'portfolio', note:"Daily Operations: Focus on participant screening, data entry, and upcoming scheduled visits."},
+  "Monitor": {edit:false, addAE:false, allowedTabs: ['portfolio', 'audit'], defaultTab: 'portfolio', note:"Site Monitoring: Focus on site activation, protocol deviations, data-quality, and overdue visits."},
+  "Ethics Committee": {edit:true, addAE:false, allowedTabs: ['regulatory', 'pv'], defaultTab: 'regulatory', note:"Safety & Ethics Oversight: Focus on approvals, renewals, and SAE safety signals."},
+  "Pharmacovigilance Staff": {edit:false, addAE:true, allowedTabs: ['pv', 'audit'], defaultTab: 'pv', note:"Safety Intelligence: Focus on NPvCC logging, dual-coding (NAMASTE/MedDRA), and regulatory clocks."},
+  "Admin": {edit:true, addAE:true, allowedTabs: ['portfolio', 'regulatory', 'pv', 'audit'], defaultTab: 'portfolio', note:"Portfolio Command Center: Full cross-trial analytics, exception alerts, and user management."},
+  "Regulator (read-only)": {edit:false, addAE:false, allowedTabs: ['portfolio', 'regulatory', 'pv', 'audit'], defaultTab: 'portfolio', note:"Regulatory Oversight: Immutable, read-only view of authorized study milestones and safety data."}
 };
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -147,15 +147,19 @@ function App() {
         </div>
         <div className="role-block">
           <label>Viewing as</label>
-          <select value={role} onChange={e => { setRole(e.target.value); }}>
+          <select value={role} onChange={e => { 
+            const newRole = e.target.value;
+            setRole(newRole);
+            setTab(ROLE_PERMS[newRole].defaultTab);
+          }}>
             {Object.keys(ROLE_PERMS).map(r => <option key={r}>{r}</option>)}
           </select>
         </div>
         <nav className="nav">
-          <button className={tab==='portfolio'?'active':''} onClick={()=>setTab('portfolio')}>Portfolio &amp; KPIs</button>
-          <button className={tab==='regulatory'?'active':''} onClick={()=>setTab('regulatory')}>Regulatory &amp; Ethics</button>
-          <button className={tab==='pv'?'active':''} onClick={()=>setTab('pv')}>Pharmacovigilance</button>
-          <button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Trail</button>
+          {perms.allowedTabs.includes('portfolio') && <button className={tab==='portfolio'?'active':''} onClick={()=>setTab('portfolio')}>Portfolio &amp; KPIs</button>}
+          {perms.allowedTabs.includes('regulatory') && <button className={tab==='regulatory'?'active':''} onClick={()=>setTab('regulatory')}>Regulatory &amp; Ethics</button>}
+          {perms.allowedTabs.includes('pv') && <button className={tab==='pv'?'active':''} onClick={()=>setTab('pv')}>Pharmacovigilance</button>}
+          {perms.allowedTabs.includes('audit') && <button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Trail</button>}
         </nav>
         <div className="perm-note">
           <b>{role}</b><br/>{perms.note}
@@ -163,6 +167,7 @@ function App() {
       </aside>
 
       <main>
+        {perms.allowedTabs.includes('portfolio') && (
         <section className={`section ${tab==='portfolio'?'active':''}`}>
           <div className="pagehead">
             <div><h2>Portfolio &amp; KPI Layer</h2><p>Stage 1 MVP — real-time view replacing spreadsheet tracking</p></div>
@@ -210,7 +215,9 @@ function App() {
             </div>
           </div>
         </section>
+        )}
 
+        {perms.allowedTabs.includes('regulatory') && (
         <section className={`section ${tab==='regulatory'?'active':''}`}>
           <div className="pagehead">
             <div><h2>Regulatory &amp; Ethics Tracker</h2><p>CTRI registration and IEC approval milestones — NDCT Rules 2019</p></div>
@@ -243,7 +250,9 @@ function App() {
             </div>
           </div>
         </section>
+        )}
 
+        {perms.allowedTabs.includes('pv') && (
         <section className={`section ${tab==='pv'?'active':''}`}>
           <div className="pagehead">
             <div><h2>Pharmacovigilance Module</h2><p>NPvCC — AE/SAE intake, Dual Coding, and Regulatory Clock Countdown</p></div>
@@ -322,7 +331,9 @@ function App() {
             </div>
           </div>
         </section>
+        )}
 
+        {perms.allowedTabs.includes('audit') && (
         <section className={`section ${tab==='audit'?'active':''}`}>
           <div className="pagehead" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
             <div><h2>Audit Trail</h2><p>Immutable, time-stamped log — ALCOA+ aligned with SHA-256 Hash Chaining</p></div>
@@ -380,6 +391,7 @@ function App() {
             </div>
           </div>
         </section>
+        )}
       </main>
       
       <style>{`
