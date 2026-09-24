@@ -8,53 +8,65 @@ app.use(express.json());
 
 // STUDIES
 app.get('/api/studies', (req, res) => {
-  db.all("SELECT * FROM studies", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const rows = db.prepare('SELECT * FROM studies').all();
     res.json(rows);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.put('/api/studies/:id', (req, res) => {
-  const { id } = req.params;
-  const { ethicsStatus } = req.body;
-  db.run("UPDATE studies SET ethicsStatus = ? WHERE id = ?", [ethicsStatus, id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ updated: this.changes });
-  });
+  try {
+    const { id } = req.params;
+    const { ethicsStatus } = req.body;
+    const result = db.prepare('UPDATE studies SET ethicsStatus = ? WHERE id = ?').run(ethicsStatus, id);
+    res.json({ updated: result.changes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // AE RECORDS
 app.get('/api/ae', (req, res) => {
-  db.all("SELECT * FROM ae_records ORDER BY reported DESC", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const rows = db.prepare('SELECT * FROM ae_records ORDER BY reported DESC').all();
     res.json(rows);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/ae', (req, res) => {
-  const { study, subject, event, severity, meddra, reported, hours, status } = req.body;
-  db.run(`INSERT INTO ae_records (study, subject, event, severity, meddra, reported, hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 
-    [study, subject, event, severity, meddra, reported, hours, status], 
-    function(err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
-    });
+  try {
+    const { study, subject, event, severity, meddra, reported, hours, status } = req.body;
+    const result = db.prepare(
+      `INSERT INTO ae_records (study, subject, event, severity, meddra, reported, hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(study, subject, event, severity, meddra, reported, hours, status);
+    res.json({ id: result.lastInsertRowid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // AUDIT LOG
 app.get('/api/audit', (req, res) => {
-  db.all("SELECT * FROM audit_log ORDER BY id DESC", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const rows = db.prepare('SELECT * FROM audit_log ORDER BY id DESC').all();
     res.json(rows);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/audit', (req, res) => {
-  const { t, role, action } = req.body;
-  db.run(`INSERT INTO audit_log (t, role, action) VALUES (?, ?, ?)`, [t, role, action], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID });
-  });
+  try {
+    const { t, role, action } = req.body;
+    const result = db.prepare('INSERT INTO audit_log (t, role, action) VALUES (?, ?, ?)').run(t, role, action);
+    res.json({ id: result.lastInsertRowid });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3001;
